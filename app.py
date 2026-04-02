@@ -1,100 +1,114 @@
 import streamlit as st
 import pandas as pd
-from PIL import Image
-import os
-from datetime import datetime
-import time
+import numpy as np
 import plotly.express as px
+from PIL import Image
+import datetime
 
-# --- 1. DATA PERSISTENCE (BRONZE LAYER) ---
-BRONZE_PATH = 'bronze_vault.csv'
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="SeDW - Exanthem Surveillance Uganda",
+    page_icon="🌍",
+    layout="wide"
+)
 
-def save_to_bronze(district, symptoms, neural_conf, symbolic_result):
-    data = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "district": district,
-        "symptoms": "|".join(symptoms),
-        "neural_confidence": neural_conf,
-        "symbolic_clade_prediction": symbolic_result,
-        "status": "Awaiting_Human_Validation"
-    }
-    df = pd.DataFrame([data])
-    if not os.path.isfile(BRONZE_PATH):
-        df.to_csv(BRONZE_PATH, index=False)
-    else:
-        df.to_csv(BRONZE_PATH, mode='a', header=False, index=False)
+# --- Mock Semantic Backend Logic ---
+def get_semantic_trust_score(metadata):
+    """Simulates the Epistemic Trust Module (Layer 1 & 5)"""
+    score = 0.5
+    if metadata['location_verified']: score += 0.2
+    if metadata['clinical_context']: score += 0.2
+    if metadata['observer_role'] == "Health Worker": score += 0.1
+    return min(score, 1.0)
 
-# --- 2. PAGE CONFIG ---
-st.set_page_config(page_title="Exanthems Semantic Surveillance", layout="wide", page_icon="🛡️")
+# --- UI Header ---
+st.title("🛡️ Semantic-Aware Data Warehouse (SeDW)")
+st.subheader("Community-Based Surveillance for Exanthems in Uganda")
 
-# --- 3. SIDEBAR ---
-with st.sidebar:
-    st.title("Project Dashboard")
-    st.write("**Institution:** Makerere University")
-    st.divider()
-    page = st.radio("Navigate to:", ["📡 Reporting Portal", "📊 Surveillance Insights"])
+# --- Sidebar Navigation ---
+page = st.sidebar.radio("Navigation", ["Surveillance Dashboard", "Live Data Capture", "Knowledge Graph View"])
 
-# --- 4. PAGE: REPORTING PORTAL ---
-if page == "📡 Reporting Portal":
-    st.header("🛡️ Exanthems Community Reporting Portal")
-    
-    col1, col2 = st.columns([1, 1], gap="large")
+# --- PAGE 1: Surveillance Dashboard ---
+if page == "Surveillance Dashboard":
+    st.markdown("### 📊 Epidemiological Intelligence")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Observations", "1,284", "+12% week")
+    col2.metric("High-Trust Alerts", "42", "Action Required")
+    col3.metric("OOD Robustness", "94.2%", "Model Confidence")
 
-    with col1:
-        st.subheader("Step 1: Live Data Capture (Bronze Layer)")
+    # Mock Data for Chart
+    chart_data = pd.DataFrame({
+        'Date': pd.date_range(start='2026-03-01', periods=10),
+        'Mpox': [5, 8, 12, 10, 15, 20, 18, 25, 30, 28],
+        'Chickenpox': [20, 18, 22, 25, 15, 12, 10, 8, 5, 7]
+    })
+    fig = px.line(chart_data, x='Date', y=['Mpox', 'Chickenpox'], title="Trend Analysis: Confirmed Semantic Cases")
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- PAGE 2: Live Data Capture (The "Citizen Science" Ingestion Layer) ---
+elif page == "Live Data Capture":
+    st.markdown("### 📸 Live Ingestion Layer")
+    st.info("Ingesting multimodal data for semantic annotation (Layer 3 & 6).")
+
+    with st.expander("Capture Image or Upload", expanded=True):
+        source = st.radio("Choose Input Type:", ["Camera Capture", "File Upload"])
+        img_file = None
         
-        # --- NEW: LIVE CAMERA INPUT ---
-        input_method = st.radio("Select Input Method:", ["Live Camera Capture", "Upload Existing Image"])
-        
-        captured_image = None
-        if input_method == "Live Camera Capture":
-            captured_image = st.camera_input("Take a photo of the lesion")
+        if source == "Camera Capture":
+            img_file = st.camera_input("Scan Exanthem")
         else:
-            captured_image = st.file_uploader("Upload Lesion Image", type=["jpg", "png", "jpeg"])
-        
-        district = st.selectbox("Current Location (District)", ["Nakasongola", "Kasese", "Kampala", "Wakiso", "Mbarara", "Lwengo"])
-        
-        st.write("**Observed Symptoms:**")
-        fever = st.checkbox("Fever")
-        lymph = st.checkbox("Swollen Lymph Nodes")
-        headache = st.checkbox("Headache")
+            img_file = st.file_uploader("Upload Image", type=['jpg', 'png', 'jpeg'])
 
-        if st.button("🚀 Run Neurosymbolic Analysis"):
-            if captured_image:
-                symptoms_list = [s for s, val in zip(["Fever", "Lymph", "Headache"], [fever, lymph, headache]) if val]
+    if img_file:
+        st.success("Image successfully ingested into the buffer.")
+        
+        # Metadata Form (Ontology Enrichment)
+        st.markdown("#### 📝 Clinical Context (Ontology Mapping)")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            role = st.selectbox("Observer Role", ["Citizen Scientist", "Community Health Worker", "Clinician"])
+            symptoms = st.multiselect("Associated Signs", ["Fever", "Lymphadenopathy", "Headache", "Fatigue"])
+        with col_b:
+            location = st.text_input("Region/District", value="Kampala Central")
+            duration = st.slider("Duration of Rash (Days)", 1, 21, 3)
+
+        if st.button("Submit to SeDW Pipeline"):
+            # Simulate the 8-Layer Process
+            with st.status("Processing through 8-Layer Locator Framework...", expanded=True):
+                st.write("L3: Ingesting Multimodal Data...")
+                st.write("L7: Executing CNN Classification (MobileNetV2)...")
+                st.write("L2: Mapping to ExanthemObservation Ontology...")
                 
-                with st.status("Analyzing Live Data...", expanded=True) as status:
-                    st.write("Extracting Pixels (Neural Layer)...")
-                    time.sleep(1)
-                    st.write("Traversing Knowledge Graph (Symbolic Layer)...")
-                    time.sleep(1)
-                    status.update(label="Analysis Complete!", state="complete", expanded=False)
+                # Semantic logic result
+                trust = get_semantic_trust_score({
+                    'location_verified': True,
+                    'clinical_context': len(symptoms) > 0,
+                    'observer_role': role
+                })
+                
+                st.write(f"L5: Calculated Epistemic Trust Score: **{trust}**")
+            
+            st.success("Data successfully stored in the Knowledge Graph.")
+            st.balloons()
 
-                with col2:
-                    st.subheader("Step 2: Semantic Insights")
-                    
-                    # Simulated Logic
-                    clade_prediction = "Clade Ib" if "Fever" in symptoms_list and district == "Nakasongola" else "Observation Required"
-                    st.metric(label="CNN Confidence", value="92.1%")
-                    
-                    if clade_prediction == "Clade Ib":
-                        st.error(f"⚠️ **Semantic Alert:** High correlation with {clade_prediction} patterns.")
-                    else:
-                        st.info("Case logged for surveillance.")
-
-                    # Save to DWH
-                    save_to_bronze(district, symptoms_list, "92.1%", clade_prediction)
-                    st.toast("Data successfully captured and saved!", icon="💾")
-            else:
-                st.warning("Please capture or upload an image to proceed.")
-
-# --- 5. PAGE: SURVEILLANCE INSIGHTS ---
-else:
-    st.header("📊 National Surveillance Insights")
-    if os.path.exists(BRONZE_PATH):
-        df = pd.read_csv(BRONZE_PATH)
-        st.metric("Total Live Captures", len(df))
-        st.write("**Real-Time Ingestion Log:**")
-        st.dataframe(df.sort_values(by="timestamp", ascending=False), use_container_width=True)
-    else:
-        st.info("No live data captured yet.")
+# --- PAGE 3: Knowledge Graph View ---
+elif page == "Knowledge Graph View":
+    st.markdown("### 🕸️ Semantic Retrieval (SPARQL Results)")
+    st.code("""
+    PREFIX ex: <http://exanthem.org/ontology#>
+    SELECT ?observation ?trust ?diagnosis
+    WHERE {
+        ?observation ex:hasTrustScore ?trust .
+        ?observation ex:hasDiagnosis ?diagnosis .
+        FILTER (?trust > 0.8)
+    }
+    """, language="sql")
+    
+    # Mock Results Table
+    results = pd.DataFrame({
+        "Observation ID": ["Obs_UG_001", "Obs_UG_004", "Obs_UG_012"],
+        "Timestamp": ["2026-03-28", "2026-03-29", "2026-03-30"],
+        "Trust Score": [0.92, 0.88, 0.95],
+        "Classification": ["Mpox", "Mpox", "Varicella"]
+    })
+    st.table(results)

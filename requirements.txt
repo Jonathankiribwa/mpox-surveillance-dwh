@@ -1,5 +1,5 @@
 streamlit
 pandas
-pillow
+numpy
 plotly
-neo4j
+pillow
