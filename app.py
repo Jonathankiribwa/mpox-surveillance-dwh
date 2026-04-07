@@ -187,5 +187,5 @@ elif page == "🕸️ Knowledge Graph View":
             # Allow examiners to download the CSV to prove it works
             csv = db_df.to_csv(index=False).encode('utf-8')
             st.download_button("Download Raw Ingestion Log", data=csv, file_name="bronze_layer_export.csv", mime="text/csv")
-    except FileNotFoundError:
-        st.error("Database file not found.")
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        st.info("The local database is currently empty. Go to the Capture tab to ingest data.")
